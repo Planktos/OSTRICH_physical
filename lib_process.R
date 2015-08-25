@@ -4,8 +4,12 @@
 #  (c) Copyright 2013-2014 Jean-Olivier Irisson
 #       and Jessica Luo
 #      GNU General Public License v3
+#   
+#   Updated: 25 August 2015 - klr
 #
 #--------------------------------------------------------------------------
+#list GPS files from ship
+gps.files <- list.files("gps", full=TRUE)
 
 # reformat the lat and long in decimal degrees
 to.dec <- function(x) {
@@ -24,7 +28,9 @@ to.dec <- function(x) {
 }
 
 # Read GPS data from ship
-read.gps <- function(file) {
+gps <- adply(gps.files, 1, function(file) { #kr
+
+# read.gps <- function(file) {
   library(stringr)
   
   options(digits.secs=3)  # allow split seconds
@@ -64,40 +70,41 @@ read.gps <- function(file) {
   
 }
 
-# Read hydrological data from ISIIS
-read.isiis <- function(file) {
-  library("stringr")
-
-	options(digits.secs=3)  # allow split seconds #changed from 2 to 3
-
-	# read the data
-  d <- read.delim(file, skip=10, fileEncoding="ISO-8859-1", encoding="UTF-8", stringsAsFactors=FALSE)
-
-  # clean names
-	# remove double dots
-  names(d) <- str_replace_all(names(d), fixed(".."), ".")
-  names(d) <- str_replace_all(names(d), fixed(".."), ".")
-	# remove dots at end of names
-  names(d) <- str_replace(names(d), "\\.$", "")
-
-  # extract date from file name
-  year <- str_sub(file, -16, -13)
-  month <- str_sub(file, -12, -11)
-  day <- str_sub(file, -10, -9)
-
-  # compute date and time
-  d$dateTimeMsec <- as.POSIXct(str_c(year, "-", month, "-", day, " ", d$Time), tz="America/New_York")
-  # detect midnight shifts
-  midnightShift <- which(diff(d$dateTimeMsec) < 0)
-  if (length(midnightShift) > 0) {
-    d$dateTimeMsec[midnightShift:nrow(d)] <- d$dateTimeMsec[midnightShift:nrow(d)] + 24 * 3600
-  }
-  
-  # keep important columns
-  d <- d[,c("dateTimeMsec", "Pressure.dbar", "Depth.m", "Temp.C", "Salinity.PPT", "Fluoro.volts", "Oxygen.ml.l", "Irrandiance.UE.cm", "Lat.decimals", "Long.decimals")]
-
-	return(d)
-}
+# # Read hydrological data from ISIIS
+#--------------------------------------
+# read.isiis <- function(file) {
+#   library("stringr")
+# 
+# 	options(digits.secs=3)  # allow split seconds #changed from 2 to 3
+# 
+# 	# read the data
+#   d <- read.delim(file, skip=10, fileEncoding="ISO-8859-1", encoding="UTF-8", stringsAsFactors=FALSE)
+# 
+#   # clean names
+# 	# remove double dots
+#   names(d) <- str_replace_all(names(d), fixed(".."), ".")
+#   names(d) <- str_replace_all(names(d), fixed(".."), ".")
+# 	# remove dots at end of names
+#   names(d) <- str_replace(names(d), "\\.$", "")
+# 
+#   # extract date from file name
+#   year <- str_sub(file, -16, -13)
+#   month <- str_sub(file, -12, -11)
+#   day <- str_sub(file, -10, -9)
+# 
+#   # compute date and time
+#   d$dateTimeMsec <- as.POSIXct(str_c(year, "-", month, "-", day, " ", d$Time), tz="America/New_York")
+#   # detect midnight shifts
+#   midnightShift <- which(diff(d$dateTimeMsec) < 0)
+#   if (length(midnightShift) > 0) {
+#     d$dateTimeMsec[midnightShift:nrow(d)] <- d$dateTimeMsec[midnightShift:nrow(d)] + 24 * 3600
+#   }
+#   
+#   # keep important columns
+#   d <- d[,c("dateTimeMsec", "Pressure.dbar", "Depth.m", "Temp.C", "Salinity.PPT", "Fluoro.volts", "Oxygen.ml.l", "Irrandiance.UE.cm", "Lat.decimals", "Long.decimals")]
+# 
+# 	return(d)
+# }
 
 # Detect up and down casts in a depth yo
 detect.casts <- function(depth, order=200) {
@@ -140,5 +147,94 @@ dist.from.rsmas <- function(lat, lon) {
 	# TODO should compensate for the length of cable put out and the angle of the cable (i.e. depth of ISIIS)
 	library("oce")
 	geodDist(lat, lon, lat2=25.731384, lon2=-80.1621017) / 1.852
-}
+} #alternate version of code originally in 'lib_process' file
 
+phyFiles <- list.files("raw_physical_data_2014", full=TRUE)
+
+# read them all
+phy <- adply(phyFiles, 1, function(file) {
+  
+  # read the data
+  d <- read.table(file, sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
+  
+  # clean names
+  head <- names(d)
+  head <- str_replace(head, "\\(.*\\)", "")
+  head <- str_trim(head)
+  head <- make.names(head)
+  head <- tolower(head)
+  head <- str_replace(head, fixed(".."), ".")
+  # assign names
+  names(d) <- head
+  
+  # create a proper date + time format
+  date <- scan(file, what="character", skip=1, nlines=1, quiet=TRUE)
+  date <- date[2]
+  mm <- str_sub(date,1,2)
+  dd <- str_sub(date,4,5)
+  dd <- as.numeric(dd)
+  yy <- str_sub(date,7,8)
+  dateNextDay <- str_c(mm,as.character(dd+1),yy, sep="/")
+  
+  # shift by one day when we cross midnight
+  d$hour <- as.numeric(str_sub(d$time,1,2))
+  d$date <- date
+  # d$date <- ifelse(d$hour >= 18 & d$hour <= 23, date, dateNextDay) #NEED to ask Jessica to explain this line
+  d$dateTime <- str_c(d$date, d$time, sep=" ")
+  d$dateTime <- as.POSIXct(strptime(d$dateTime, format="%m/%d/%y %H:%M:%OS", tz="GMT"))
+  #   d$dateTime <- as.POSIXct(strptime(d$dateTime, format="%m/%d/%y %H:%M:%OS", tz="America/New_York"))
+  # Set time zone of collection location
+  # NB: we say it is America/New York when it is in fact local time, just to avoid having to deal with time zones
+  
+  # shift time of all physical data if not collected in Eastern Time Zone by appropriate number of hourse
+  # if collected in the Eastern Time Zone, then set change value to 0
+  d$dateTime <- d$dateTime - 0 * 3600  
+  
+  # code in a transect number
+  # this is not robust for all physical data but is necessary here
+  # use the file name as a dummy variable for transect number
+  d$transect <- file
+  #d$transect <- dd-14
+  
+  # reformat the lat and long in decimal degrees
+  to.dec <- function(x) {
+    # split in degree, minute, second
+    pieces <- str_split_fixed(x, "° |'", 3)
+    # extract orientation (S/N and E/W)
+    orientation <- str_sub(pieces[,3], -1)
+    # remove orientation to only keep numbers
+    pieces[,3] <- str_replace(pieces[,3], "[NSEW]", "")
+    # convert to decimal degrees
+    dec <- as.numeric(pieces[,1]) + as.numeric(pieces[,2]) / 60 + as.numeric(pieces[,3]) / 3600
+    # orient the coordinate
+    ifelse(orientation %in% c("S", "W"), -dec, dec)
+    
+    return(dec)
+  }
+  d$lat <- to.dec(d$lat)
+  d$long <- to.dec(d$long)
+  # we are in the western hemisphere so longitude should be negative
+  d$long <- -d$long
+  
+  # columns that are all zero are not possible
+  # they are actually missing data
+  # detect them
+  totCol <- colSums(d[llply(d, class) == "numeric"])
+  allZeroCols <- names(totCol)[which(totCol == 0)]
+  # replace the content with NA
+  d[,allZeroCols] <- NA
+  
+  # rename some columns
+  d <- rename(d, c("horizontal.vel.in.water"="horizontal.vel",
+                   "irrandiance"="irradiance"
+  ))
+  
+  # keep only interesting data
+  d <- d[,c("transect", "dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged")]
+  
+  return(d)
+  head
+}, .progress="text")
+
+# remove adply crap
+phy <- phy[,-1]
