@@ -69,6 +69,7 @@ read.isiis <- function(file) {
   library("stringr")
 
 	options(digits.secs=2)  # allow split seconds
+	options(digits.secs=3)  # allow split seconds #changed from 2 to 3
 
 	# read the data
   d <- read.delim(file, skip=10, fileEncoding="ISO-8859-1", encoding="UTF-8", stringsAsFactors=FALSE)
