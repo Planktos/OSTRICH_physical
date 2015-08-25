@@ -68,7 +68,6 @@ read.gps <- function(file) {
 read.isiis <- function(file) {
   library("stringr")
 
-	options(digits.secs=2)  # allow split seconds
 	options(digits.secs=3)  # allow split seconds #changed from 2 to 3
 
 	# read the data
