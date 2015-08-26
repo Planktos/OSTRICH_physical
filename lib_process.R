@@ -234,7 +234,7 @@ as.data.frame(transect.names)
 phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "PhysicalDataFileName", all.x=T)
 
 # inspect water mass data
-phyM <- melt(phy, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
+phyM <- melt(phyt, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
 
