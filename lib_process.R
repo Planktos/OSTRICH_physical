@@ -15,7 +15,7 @@
 # 4) corrects the time zone and converts lat/long into decimal degrees
 
 #list GPS files from ship
-gps.files <- list.files("gps", full=TRUE)
+gps.files <- list.files("gps_2014", full=TRUE)
 
 # reformat the lat and long in decimal degrees
 to.dec <- function(x) {
@@ -255,7 +255,8 @@ ggplot(phyt) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~tra
 ggplot(phyt) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
 ggplot(phyt) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
 ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
-ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7))
+# Not needed
+  # ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7)) 
 
 # Functions
 #--------------------------------------------
