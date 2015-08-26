@@ -238,12 +238,24 @@ phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 as.data.frame(transect.names)
-phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "PhysicalDataFileName", all.x=T)
+phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physical.data.file.name", all.x=T)
+
+# remove redundant file names
+phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged", "cruise", "haul.no", "transect.id")]
+
 
 # inspect water mass data
 phyM <- melt(phyt, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
+
+# look at profiles
+ggplot(phy) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~transect)
+ggplot(phy) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~transect)
+ggplot(phy) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~transect)
+ggplot(phy) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~transect)
+ggplot(phy) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect)
+ggplot(phy) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7))
 
 # Functions
 #--------------------------------------------
