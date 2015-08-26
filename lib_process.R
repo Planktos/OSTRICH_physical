@@ -15,7 +15,7 @@
 # 4) corrects the time zone and converts lat/long into decimal degrees
 
 #list GPS files from ship
-gps.files <- list.files("gps_2014", full=TRUE)
+gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
 
 # reformat the lat and long in decimal degrees
 to.dec <- function(x) {
@@ -34,7 +34,8 @@ to.dec <- function(x) {
 }
 
 # Read GPS data from ship
-gps <- adply(gps.files, 1, function(file) { #kr
+# replaced read.gps with the adply call - kr
+gps <- adply(gps.files, 1, function(file) {
 
 # read.gps <- function(file) {
   library(stringr)
@@ -42,7 +43,7 @@ gps <- adply(gps.files, 1, function(file) { #kr
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(file, header=F, skip=2, sep=",")
+  t <- read.table(file, header=F, skip=2, sep="\t",fileEncoding="UTF-8")
   # split the first column
   tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
   # bind together
@@ -71,10 +72,14 @@ gps <- adply(gps.files, 1, function(file) { #kr
   t$dateTime <- t$dateTime - 4*3600
   # keep only relevant columns
   t <- t[,names(t) %in% c("dateTime", "lat", "long")]
-    
-  return(t)  
+
+  return(t)
+}, .progress="text")
+
+# remove adply crap
+gps <- gps[,-1]
   
-}
+
 
 # # Read hydrological data from ISIIS
 #-------------------------------------
@@ -197,6 +202,7 @@ phy <- adply(phyFiles, 1, function(file) {
     
     return(dec)
   }
+  
   d$lat <- to.dec(d$lat)
   d$long <- to.dec(d$long)
   # we are in the western hemisphere so longitude should be negative
