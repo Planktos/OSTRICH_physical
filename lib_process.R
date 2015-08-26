@@ -69,11 +69,12 @@ gps <- adply(gps.files, 1, function(file) {
   # combine date and time and convert dateTime to POSIX
   t$dateTime <- str_c(t$date, " ",t$time)
   t$dateTime <- as.POSIXct(t$dateTime, format="%m/%d/%Y %H:%M:%OS", tz="GMT")
-  # convert from GMT to local time
+  # convert from GMT to local time (Eastern Standard Time)
   t$dateTime <- t$dateTime - 4*3600
  
-  # keep only relevant columns
+ # keep only relevant columns & reorder them
   t <- t[,names(t) %in% c("dateTime", "lat", "long")]
+  t <- t[c("dateTime", "lat", "long")]
 
   return(t)
 }, .progress="text")
