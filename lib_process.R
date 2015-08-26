@@ -250,12 +250,12 @@ ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales=
 
 
 # look at profiles
-ggplot(phy) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~transect)
-ggplot(phy) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~transect)
-ggplot(phy) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~transect)
-ggplot(phy) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~transect)
-ggplot(phy) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect)
-ggplot(phy) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7))
+ggplot(phyt) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phyt) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phyt) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phyt) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7))
 
 # Functions
 #--------------------------------------------
