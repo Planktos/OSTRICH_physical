@@ -228,6 +228,13 @@ phy <- phy[,-1]
 
 summary(phy)
 
+# the depth gets stuck from time to time and that results in jumps afterwards. Remove those stuck points and reinterpolate the depth linarly using time.
+# assign the depths in which the difference before the previous depth is 0 to be NA
+phy$depth[which(diff(phy$depth)==0)+1] <- NA
+
+# interpolation
+phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
+
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 as.data.frame(transect.names)
