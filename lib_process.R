@@ -43,7 +43,7 @@ gps <- adply(gps.files, 1, function(file) {
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(gps.files[1], header=F, skip=2, sep="\t",fileEncoding="UTF-8")
+  t <- read.table(file, header=F, skip=2, sep="\t",fileEncoding="UTF-8", skipNul = TRUE)
   #name the fields
   colnames(t) <- c("date", "time", "gpsTime", "latdeg", "latminsec", "N-S", "londeg", "lonminsec","E-W", "altitude","height","dilution","satellites", "fix.quality","model", "checksum")
   # use the following instead of the above if reading in GPSVTG String .DAT GPS files
