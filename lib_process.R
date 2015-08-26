@@ -43,19 +43,22 @@ gps <- adply(gps.files, 1, function(file) {
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(file, header=F, skip=2, sep="\t",fileEncoding="UTF-8")
-  # split the first column
-  tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
-  # bind together
-  t <- cbind(tmp, t[2:ncol(t)])
-  t <- t[,names(t) %in% c("date", "time", "V3", "V4", "V5", "V6")]
-    
-  names(t) <- c("date", "time", "lat", "N-S", "long", "E-W")
-    
-  t$latdeg <- str_sub(t$lat,1,2)
-  t$latminsec <- str_sub(t$lat,3,-1)
-  t$londeg <- str_sub(t$long,1,2)
-  t$lonminsec <- str_sub(t$long,3,-1)
+  t <- read.table(gps.files[1], header=F, skip=2, sep="\t",fileEncoding="UTF-8")
+  #name the fields
+  colnames(t) <- c("date", "time", "gpsTime", "latdeg", "latminsec", "N-S", "londeg", "lonminsec","E-W", "altitude","height","dilution","satellites", "fix.quality","model", "checksum")
+  # use the following instead of the above if reading in GPSVTG String .DAT GPS files
+    # split the first column
+      # tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
+    # bind together
+      #   t <- cbind(tmp, t[2:ncol(t)])
+    #   t <- t[,names(t) %in% c("date", "time", "V3", "V4", "V5", "V6")]
+    #     
+    #   names(t) <- c("date", "time", "lat", "N-S", "long", "E-W")
+        
+    #   t$latdeg <- str_sub(t$lat,1,2)
+    #   t$latminsec <- str_sub(t$lat,3,-1)
+    #   t$londeg <- str_sub(t$long,1,2)
+    #   t$lonminsec <- str_sub(t$long,3,-1)
     
   # convert to degrees, take into account the N/S/E/W orientation
   t$lat <- as.numeric(t$latdeg) + as.numeric(t$latminsec)/60
@@ -65,11 +68,10 @@ gps <- adply(gps.files, 1, function(file) {
     
   # combine date and time and convert dateTime to POSIX
   t$dateTime <- str_c(t$date, " ",t$time)
-    
-  t$dateTime <- as.POSIXct(t$dateTime, format="%m/%d/%Y %H:%M:%OS", tz="America/New_York")
-    
+  t$dateTime <- as.POSIXct(t$dateTime, format="%m/%d/%Y %H:%M:%OS", tz="GMT")
   # convert from GMT to local time
   t$dateTime <- t$dateTime - 4*3600
+ 
   # keep only relevant columns
   t <- t[,names(t) %in% c("dateTime", "lat", "long")]
 
