@@ -14,6 +14,8 @@
 # 3) from the time format in the gps data, converts it to the universal time format
 # 4) corrects the time zone and converts lat/long into decimal degrees
 
+library(lubridate)
+
 #list GPS files from ship
 gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
 
@@ -81,7 +83,11 @@ gps <- adply(gps.files, 1, function(file) {
 
 # remove adply crap
 gps <- gps[,-1]
-  
+
+gps.temp <- gps
+#round dateTime to the nearest whole second
+gps,temp$dateTime <- round_date(gps.temp$dateTime, "second")
+gps.sec <- aggregate(cbind(lat, long)~dateTime, data = gps.temp, FUN = mean)
 
 
 # # Read hydrological data from ISIIS
@@ -246,15 +252,33 @@ phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
 
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
-as.data.frame(transect.names)
-phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physical.data.file.name", all.x=T)
+transect.names <- as.data.frame(transect.names)
+phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
 
 # remove redundant file names
-phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged", "cruise", "haul.no", "transect.id")]
+  # if GPS on ISIIS is working well, then use: 
+  # phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged", "cruise", "haul.no", "transect.id")]
+  # if GPS on ISIIS is NOT working, then use: 
+  phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
+  # Add latitude and longitude using ship's GPS data stream
 
+#round physical data to the nearest second so it can be merged with the gps data
+phyt$dateTime <- round_date(phyt$dateTime, "second")
+phyt.sec <- aggregate(cbind(depth, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt, FUN = mean)
+
+#merge gps $ physical data
+phys <- merge(x = gps.sec, y =  phyt.sec, by = "dateTime", all.y = T)
+
+#check phys data
+summary(phys)
+
+#fix 4 hour time offset if present (start and end times should match phy data set)
+phys$dateTime <- phys$dateTime - 4 * 3600  
+
+s <- phys[phys$dateTime >=as.POSIXct("2014-05-29 11:26:00"),]
 
 # inspect water mass data
-phyM <- melt(phyt, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
+phyM <- melt(phy, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
 
@@ -266,6 +290,9 @@ ggplot(phyt) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~trans
 ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
 # Not needed
   # ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7)) 
+
+
+
 
 # Functions
 #--------------------------------------------
