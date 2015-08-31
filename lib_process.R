@@ -14,7 +14,14 @@
 # 3) from the time format in the gps data, converts it to the universal time format
 # 4) corrects the time zone and converts lat/long into decimal degrees
 
-library(lubridate)
+library("lubridate")
+library("plyr")
+library("stringr")
+library("reshape2")
+library("pastecs")
+library("ggplot2")
+
+options("digits.secs"=3)
 
 #list GPS files from ship
 gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
@@ -85,9 +92,22 @@ gps <- adply(gps.files, 1, function(file) {
 gps <- gps[,-1]
 
 gps.temp <- gps
+
 #round dateTime to the nearest whole second
-gps,temp$dateTime <- round_date(gps.temp$dateTime, "second")
-gps.sec <- aggregate(cbind(lat, long)~dateTime, data = gps.temp, FUN = mean)
+# binSize <- 0.01
+
+#calculate the number of bins
+# Try this later to keep subsecond accuracy using computer with more RAM 8/27/2015 kr
+#   gps.temp.maxT <- max(gps.temp$dateTime, na.rm=T)
+#   gps.temp.minT <- min(gps.temp$dateTime, na.rm=T)
+#   gps.bins=seq(gps.temp.minT, gps.temp.maxT, by = binSize)
+#   gps.temp$dateTimeB <- cut(gps.temp$dateTime, breaks=gps.bins, labels=1:(length(gps.bins)-1))
+#   gps.temp$dateTimeB <- as.numeric(gps.temp$dateTimeB)
+#   gps.dateTimeBin <- aggregate(dateTime~dateTimeB, data = gps.temp, FUN = mean)
+
+gps.temp$dateTimeR <- round_date(gps.temp$dateTime, "second")
+
+gps.sec <- aggregate(cbind(dateTime, lat, long)~dateTimeR, data = gps.temp, FUN = mean)
 
 
 # # Read hydrological data from ISIIS
@@ -126,14 +146,6 @@ gps.sec <- aggregate(cbind(lat, long)~dateTime, data = gps.temp, FUN = mean)
 # 	return(d)
 # } #original "lib_process" code to process ISIIS physical data
 # -----------------------------------------
-library("plyr")
-library("stringr")
-library("reshape2")
-library("pastecs")
-library("ggplot2")
-
-# setup R to keep decimal seconds in the times
-options("digits.secs"=3)
 
 # create the final data repository
 dir.create("data", showWarnings=FALSE)
@@ -155,7 +167,7 @@ phyFiles <- list.files("raw_physical_data_2014", full=TRUE)
 phy <- adply(phyFiles, 1, function(file) {
   
   # read the data
-  d <- read.table(file, sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
+  d <- read.table(phyFiles[2], sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
   
   # clean names
   head <- names(d)
@@ -168,7 +180,7 @@ phy <- adply(phyFiles, 1, function(file) {
   names(d) <- head
   
   # create a proper date + time format
-  date <- scan(file, what="character", skip=1, nlines=1, quiet=TRUE)
+  date <- scan(phyFiles[2], what="character", skip=1, nlines=1, quiet=TRUE)
   date <- date[2]
   mm <- str_sub(date,1,2)
   dd <- str_sub(date,4,5)
@@ -192,28 +204,36 @@ phy <- adply(phyFiles, 1, function(file) {
   # code in a transect number
   # use the file name as a dummy variable for transect number
   
-  d$transect <- basename(file)
+  d$transect <- basename(phyFiles[2])
   # this is not robust for all physical data but is necessary here
       #d$transect <- dd-14
   
   # reformat the lat and long in decimal degrees
+  
+  # KR: Modifying because JL original wasn't quite working with structure of 2014 physical data files. This may not be robust for data
+  # collected in regions with single digit lat and longitude coordinates
+  
   to.dec <- function(x) {
     # split in degree, minute, second
-    pieces <- str_split_fixed(x, "° |'", 3)
-    # extract orientation (S/N and E/W)
-    orientation <- str_sub(pieces[,3], -1)
+    #pieces <- str_split_fixed(x, "°|'",2) #Can't make R split at the degree symbol
+    deg <- substr(x, 1, 2)
+    min <- substr(x, 5, 6)
+    sec <- substr(x, 8, 12)
+        # extract orientation (S/N and E/W)
+    orientation <- substr(x, 13,13) #Changed from pieces[,3] to sec
     # remove orientation to only keep numbers
-    pieces[,3] <- str_replace(pieces[,3], "[NSEW]", "")
+      #pieces[,2] <- str_replace(pieces[,3], pattern = "[NSEW]", replacement = "")
     # convert to decimal degrees
-    dec <- as.numeric(pieces[,1]) + as.numeric(pieces[,2]) / 60 + as.numeric(pieces[,3]) / 3600
+    dec <- as.numeric(deg) + as.numeric(min) / 60 + as.numeric(sec) / 3600 #replaced 'pieces' with 'deg', 'min', and 'sec'
     # orient the coordinate
     ifelse(orientation %in% c("S", "W"), -dec, dec)
     
     return(dec)
   }
   
-  d$lat <- to.dec(d$lat)
-  d$long <- to.dec(d$long)
+  d$lat <- to.dec(d$lat.decimals.) #changed from d$lat to d$lat.decimals.
+  d$long <- to.dec(d$long.decimals.) #changed from d$lat to d$long.decimals.
+  
   # we are in the western hemisphere so longitude should be negative
   d$long <- -d$long
   
@@ -266,16 +286,30 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
 phyt$dateTime <- round_date(phyt$dateTime, "second")
 phyt.sec <- aggregate(cbind(depth, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt, FUN = mean)
 
+summary(phyt.sec)
+
 #merge gps $ physical data
-phys <- merge(x = gps.sec, y =  phyt.sec, by = "dateTime", all.y = T)
+phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
 
 #check phys data
 summary(phys)
 
 #fix 4 hour time offset if present (start and end times should match phy data set)
-phys$dateTime <- phys$dateTime - 4 * 3600  
+phys$dateTimeR <- phys$dateTimeR - 4 * 3600
 
-s <- phys[phys$dateTime >=as.POSIXct("2014-05-29 11:26:00"),]
+
+#check to make sure lat and lon from ship matched up correctly with physical data via timestamps
+wm1 <- subset(phys, haul == 3, select=c(dateTimeR:haul))
+eund1 <- subset(phys, haul == 4, select=c(dateTimeR:haul))
+ws1 <- subset(phys, haul == 2, select=c(dateTimeR:haul))
+cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
+cu2 <- subset(phys, haul == 8, select=c(dateTimeR:haul))
+ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
+
+
+#Figure out why there are NAs in lat and long fields
+gps.na <- phys[is.na(phys$lat),]
+
 
 # inspect water mass data
 phyM <- melt(phy, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
@@ -293,6 +327,19 @@ ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~t
 
 
 
+#save phys frame as R object
+save(phys, "ost14_phy.R")
+
+write.table(phys, file = "ost14-phys.txt", sep = "\t", row.names = F, col.names = T)
+
+# Need to get distance from start individually for each transect for plotting
+# subset phys by transect
+cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
+
+ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
+
+#get distance
+ed1$distance.km <- dist.from.start(ed1$lat, ed1$long)
 
 # Functions
 #--------------------------------------------
@@ -326,10 +373,10 @@ detect.casts <- function(depth, order=200) {
 	return(data.frame(cast, down.up))
 }
 
-# Compute the straight line distance from the starting point of a lat,lon trajectory
+# Compute the straight line distance (km) from the starting point of a lat,lon trajectory
 dist.from.start <- function(lat, lon) {
 	library("oce")
-	geodDist(lat1=lat, lon1=lon, lat2=na.omit(lat)[1], lon2=na.omit(lon)[1]) / 1.852
+	geodDist(lat1=lat, lon1=lon, lat2=na.omit(lat)[1], lon2=na.omit(lon)[1]) # / 1.852 # use if you want to convert from km to nautical miles
 }
 
 # Compute the distance from rsmas
