@@ -246,7 +246,7 @@ phy <- adply(phyFiles, 1, function(file) {
   d[,allZeroCols] <- NA
   
   # rename some columns
-  d <- rename(d, c("horizontal.vel.in.water.m.s."="horizontal.vel",
+  d <- rename(d, c("horizontal.vel.in.water"="horizontal.vel",
                    "irrandiance"="irradiance"))
   
   # keep only interesting data
