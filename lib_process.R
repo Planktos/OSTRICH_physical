@@ -109,9 +109,9 @@ gps.temp <- gps
 #   gps.temp$dateTimeB <- as.numeric(gps.temp$dateTimeB)
 #   gps.dateTimeBin <- aggregate(dateTime~dateTimeB, data = gps.temp, FUN = mean)
 
-gps.temp$dateTimeR <- round_date(gps.temp$dateTime, "second")
+gps.temp$dateTime <- round_date(gps.temp$dateTime, "second")
 
-gps.sec <- aggregate(cbind(dateTime, lat.gps, long.gps)~dateTimeR, data = gps.temp, FUN = mean)
+gps.sec <- aggregate(cbind(lat.gps, long.gps)~dateTime, data = gps.temp, FUN = mean)
 
 
 # # Read hydrological data from ISIIS
@@ -308,19 +308,26 @@ phy.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, o
 summary(phy.sec)
 
   #If there are NAs, then merge gps data frmae with physical data fram if there are NAs in lat and long
-  phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
-  ifelse(phys[is.na(phys$lat),], phys$lat == phys$lat.gps, phys$lat == phys$lat)
-  ifelse(phys[is.na(phys$long),], phys$long == phys$long.gps, phys$long == phys$long)
+  phys <- merge(x = gps.sec, y =  phy.sec, by = "dateTime", all.y = T)
+  
+  # Find NAs and replace them with data from the GPS files
+  lat.na <- is.na(phys$lat)
+  phys$lat[lat.na] <- phys$lat.gps[lat.na]
 
-  #check phys data
-  summary(phys)
+  long.na <- is.na(phys$long)
+  phys$long[long.na] <- phys$long.gps[long.na]
 
-  #fix 4 hour time offset if present (start and end times should match phy data set)
-  phys$dateTimeR <- phys$dateTimeR - 4 * 3600
+#check phys data
+summary(phys)
+
+#fix 4 hour time offset if present (start and end times should match phy data set)
+phys$dateTime <- phys$dateTime - 4 * 3600
 
 
 #check to make sure lat and lon from ship matched up correctly with physical data via timestamps
-# wm1 <- subset(phys, haul == 3, select=c(dateTimeR:haul))
+# wm1 <- subset(phys, haul == 3, select=c(dateTime:haul))
+# es1<- subset(phys, haul == 5, select=c(dateTime:haul))
+# 
 # eund1 <- subset(phys, haul == 4, select=c(dateTimeR:haul))
 # ws1 <- subset(phys, haul == 2, select=c(dateTimeR:haul))
 # cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
@@ -328,7 +335,7 @@ summary(phy.sec)
 # ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
 
 # inspect water mass data
-phyM <- melt(phyt, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "density","fluoro", "oxygen", "irradiance"))
+phyM <- melt(phys, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "density","fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
 
