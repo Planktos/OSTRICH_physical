@@ -20,8 +20,12 @@ library("stringr")
 library("reshape2")
 library("pastecs")
 library("ggplot2")
+library("oce")
 
 options("digits.secs"=3)
+
+#To process ship's GPS files
+#--------------------------
 
 #list GPS files from ship
 gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
@@ -111,6 +115,7 @@ gps.sec <- aggregate(cbind(dateTime, lat.gps, long.gps)~dateTimeR, data = gps.te
 
 
 # # Read hydrological data from ISIIS
+#Original lib_proess code to process ISIIS data
 #-------------------------------------
 # read.isiis <- function(file) {
 #   library("stringr")
@@ -147,12 +152,14 @@ gps.sec <- aggregate(cbind(dateTime, lat.gps, long.gps)~dateTimeR, data = gps.te
 # } #original "lib_process" code to process ISIIS physical data
 # -----------------------------------------
 
+#Current code to process ISIIS Physical data files
+#------------------------------------------
 # create the final data repository
 dir.create("data", showWarnings=FALSE)
 
 message("Read and process physical data")
 
-##{ Read and reformat physical data ---------------------------------------
+##{ Read and reformat physical data
 
 # This section performs the following tasks:
 # 1) read in the physical data files from a folder
@@ -268,6 +275,9 @@ phy$depth[which(diff(phy$depth)==0)+1] <- NA
 # interpolation
 phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
 
+#calculate seawater density
+phy$density <- swRho(salinity = phy$salinity, temperature = phy$temp, pressure = phy$pressure, eos = "unesco")
+
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 transect.names <- as.data.frame(transect.names)
@@ -275,34 +285,37 @@ transect.names$haul <- as.numeric(transect.names$haul)
 phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
 
 # remove redundant file names
-  # if GPS on ISIIS is working well, then use: 
-  # phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged", "cruise", "haul.no", "transect.id")]
-  # if GPS on ISIIS is NOT working, then use: 
+  # if GPS on ISIIS is working at all, then use: 
   phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
+  
+  #if GPS on ISIIS is NOT working, then use: 
+  #phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
   # Add latitude and longitude using ship's GPS data stream
 
 #round physical data to the nearest second so it can be merged with the gps data
-phyt$dateTime <- round_date(phyt$dateTime, "second")
-phyt.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt, FUN = mean)
+phyt.sec <- phyt
+phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
+phyt.sec <- phyt.sec[,c("depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul", "dateTime")]
+phy.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt.sec, FUN = mean)
 
 summary(phyt.sec)
 
-#Check if there are NAs in lat and long
-phyt.sec.lat.na <- nrow(phys[is.na(phys$lat),])
-print(phyt.sec.na)
-phyt.sec.long.na <- nrow(phys[is.na(phys$long),])
-print(phyt.sec.na)
-
-  #If NAs, then merge gps data frmae with physical data fram if there are NAs in lat and long
+  #If there are NAs, then merge gps data frmae with physical data fram if there are NAs in lat and long
   phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
   ifelse(phys[is.na(phys$lat),], phys$lat == phys$lat.gps, phys$lat == phys$lat)
   ifelse(phys[is.na(phys$long),], phys$long == phys$long.gps, phys$long == phys$long)
 
-#check phys data
-summary(phys)
+  #check phys data
+  summary(phys)
 
-#fix 4 hour time offset if present (start and end times should match phy data set)
-phys$dateTimeR <- phys$dateTimeR - 4 * 3600
+  #fix 4 hour time offset if present (start and end times should match phy data set)
+  phys$dateTimeR <- phys$dateTimeR - 4 * 3600
+
+#clean up phyt
+phys <- phyt.sec
+# remove some erroneous values
+phys$oxygen <- ifelse(phys$oxygen < 0, NA, phys$oxygen)
+phys$irradiance <- ifelse(phys$irradiance < 0, NA, phys$irradiance)
 
 
 #check to make sure lat and lon from ship matched up correctly with physical data via timestamps
@@ -313,37 +326,25 @@ phys$dateTimeR <- phys$dateTimeR - 4 * 3600
 # cu2 <- subset(phys, haul == 8, select=c(dateTimeR:haul))
 # ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
 
-
-
 # inspect water mass data
-phyM <- melt(phy, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
+phyM <- melt(phys, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
 
 # look at profiles
-ggplot(phyt) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
-ggplot(phyt) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
-ggplot(phyt) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
-ggplot(phyt) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
-ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id)
+ggplot(phys) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~haul)
+ggplot(phys) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~haul)
+ggplot(phys) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~haul)
+ggplot(phys) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~haul)
+ggplot(phys) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~haul)
 # Not needed
   # ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7)) 
 
 
-
 #save phys frame as R object
-save(phys, "ost14_phy.R")
+save(phys, file = "ost14_phy.R")
 
 write.table(phys, file = "ost14-phys.txt", sep = "\t", row.names = F, col.names = T)
-
-# Need to get distance from start individually for each transect for plotting
-# subset phys by transect
-cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
-
-ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
-
-#get distance
-ed1$distance.km <- dist.from.start(ed1$lat, ed1$long)
 
 # Functions
 #--------------------------------------------
