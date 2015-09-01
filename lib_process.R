@@ -83,7 +83,7 @@ gps <- adply(gps.files, 1, function(file) {
  
  # keep only relevant columns & reorder them
   t <- t[,names(t) %in% c("dateTime", "lat", "long")]
-  t <- t[c("dateTime", "lat", "long")]
+  t <- t[c("dateTime", "lat.gps", "long.gps")]
 
   return(t)
 }, .progress="text")
