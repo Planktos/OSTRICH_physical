@@ -70,10 +70,10 @@ gps <- adply(gps.files, 1, function(file) {
     #   t$lonminsec <- str_sub(t$long,3,-1)
     
   # convert to degrees, take into account the N/S/E/W orientation
-  t$lat <- as.numeric(t$latdeg) + as.numeric(t$latminsec)/60
-  t$lat <- ifelse(t$"N-S" == "S", -t$lat, t$lat)
-  t$long <- as.numeric(t$londeg) + as.numeric(t$lonminsec)/60
-  t$long <- ifelse(t$"E-W" == "W", -t$long, t$long)
+  t$lat.gps <- as.numeric(t$latdeg) + as.numeric(t$latminsec)/60
+  t$lat.gps <- ifelse(t$"N-S" == "S", -t$lat.gps, t$lat.gps)
+  t$long.gps <- as.numeric(t$londeg) + as.numeric(t$lonminsec)/60
+  t$long.gps <- ifelse(t$"E-W" == "W", -t$long.gps, t$long.gps)
     
   # combine date and time and convert dateTime to POSIX
   t$dateTime <- str_c(t$date, " ",t$time)
