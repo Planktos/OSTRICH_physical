@@ -26,7 +26,7 @@ options("digits.secs"=3)
 #list GPS files from ship
 gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
 
-# reformat the lat and long in decimal degrees
+# function reformat the lat and long in decimal degrees
 to.dec.gps <- function(y) {
   # split in degree, minute, second
   pieces <- str_split_fixed(x, "° |'", 3)
@@ -278,7 +278,7 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
   # if GPS on ISIIS is working well, then use: 
   # phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "vol.imaged", "cruise", "haul.no", "transect.id")]
   # if GPS on ISIIS is NOT working, then use: 
-  phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
+  phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
   # Add latitude and longitude using ship's GPS data stream
 
 #round physical data to the nearest second so it can be merged with the gps data
@@ -287,8 +287,16 @@ phyt.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, 
 
 summary(phyt.sec)
 
-#merge gps $ physical data
-phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
+#Check if there are NAs in lat and long
+phyt.sec.lat.na <- nrow(phys[is.na(phys$lat),])
+print(phyt.sec.na)
+phyt.sec.long.na <- nrow(phys[is.na(phys$long),])
+print(phyt.sec.na)
+
+  #If NAs, then merge gps data frmae with physical data fram if there are NAs in lat and long
+  phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
+  ifelse(phys[is.na(phys$lat),], phys$lat == phys$lat.gps, phys$lat == phys$lat)
+  ifelse(phys[is.na(phys$long),], phys$long == phys$long.gps, phys$long == phys$long)
 
 #check phys data
 summary(phys)
@@ -305,9 +313,6 @@ phys$dateTimeR <- phys$dateTimeR - 4 * 3600
 # cu2 <- subset(phys, haul == 8, select=c(dateTimeR:haul))
 # ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
 
-
-#Figure out why there are NAs in lat and long fields
-gps.na <- phys[is.na(phys$lat),]
 
 
 # inspect water mass data
