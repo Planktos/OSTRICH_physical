@@ -167,7 +167,7 @@ phyFiles <- list.files("raw_physical_data_2014", full=TRUE)
 phy <- adply(phyFiles, 1, function(file) {
   
   # read the data
-  d <- read.table(phyFiles[2], sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
+  d <- read.table(file, sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
   
   # clean names
   head <- names(d)
@@ -180,7 +180,7 @@ phy <- adply(phyFiles, 1, function(file) {
   names(d) <- head
   
   # create a proper date + time format
-  date <- scan(phyFiles[2], what="character", skip=1, nlines=1, quiet=TRUE)
+  date <- scan(file, what="character", skip=1, nlines=1, quiet=TRUE)
   date <- date[2]
   mm <- str_sub(date,1,2)
   dd <- str_sub(date,4,5)
@@ -202,14 +202,13 @@ phy <- adply(phyFiles, 1, function(file) {
   d$dateTime <- d$dateTime - 0 * 3600  
   
   # code in a transect number
-  # use the file name as a dummy variable for transect number
-  
-  d$transect <- basename(phyFiles[2])
-  # this is not robust for all physical data but is necessary here
+  # use the file name as a dummy variable for transect number. Will assign proper transect number later in the pipeline.
+  d$transect <- basename(file)
+    # San Diego transect assignment
+      # this is not robust for all physical data but is necessary here
       #d$transect <- dd-14
   
   # reformat the lat and long in decimal degrees
-  
   # KR: Modifying because JL original wasn't quite working with structure of 2014 physical data files. This may not be robust for data
   # collected in regions with single digit lat and longitude coordinates
   
@@ -231,10 +230,9 @@ phy <- adply(phyFiles, 1, function(file) {
     return(dec)
   }
   
-  d$lat <- to.dec(d$lat.decimals.) #changed from d$lat to d$lat.decimals.
-  d$long <- to.dec(d$long.decimals.) #changed from d$lat to d$long.decimals.
-  
-  # we are in the western hemisphere so longitude should be negative
+  d$lat <- to.dec(d$lat)
+  d$long <- to.dec(d$long)
+    # we are in the western hemisphere so longitude should be negative
   d$long <- -d$long
   
   # columns that are all zero are not possible
