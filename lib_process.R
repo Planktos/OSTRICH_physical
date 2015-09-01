@@ -303,9 +303,9 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
 phyt.sec <- phyt
 phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
 phyt.sec <- phyt.sec[,c("depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul", "dateTime")]
-phy.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt.sec, FUN = mean)
+phy.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, density, haul)~dateTime, data = phyt.sec, FUN = mean, na.action = na.pass)
 
-summary(phyt.sec)
+summary(phy.sec)
 
   #If there are NAs, then merge gps data frmae with physical data fram if there are NAs in lat and long
   phys <- merge(x = gps.sec, y =  phyt.sec, by.x = "dateTimeR", by.y = "dateTime", all.y = T)
@@ -342,6 +342,9 @@ ggplot(phys) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~h
 # Not needed
   # ggplot(phyt) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~transect.id) + scale_x_continuous(limits=c(-1.7E-6, -7.5E-7)) 
 
+
+#save phys frame as R object
+save(phyt, file = "ost14_phyt.R")
 
 #save phys frame as R object
 save(phys, file = "ost14_phy.R")
