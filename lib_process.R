@@ -283,6 +283,7 @@ summary(phy)
 # remove some erroneous values
 phy$oxygen <- ifelse(phy$oxygen < 0, NA, phy$oxygen)
 phy$irradiance <- ifelse(phy$irradiance < 0, NA, phy$irradiance)
+phy$density <- ifelse(phy$density < 1000, NA, phy$density)
 
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
@@ -301,7 +302,7 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
 #round physical data to the nearest second so it can be merged with the gps data
 phyt.sec <- phyt
 phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
-phyt.sec <- phyt.sec[,c("depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul", "dateTime")]
+phyt.sec <- phyt.sec[,c("depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul", "dateTime")]
 phy.sec <- aggregate(cbind(depth, lat, long, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, haul)~dateTime, data = phyt.sec, FUN = mean)
 
 summary(phyt.sec)
@@ -327,13 +328,14 @@ summary(phyt.sec)
 # ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
 
 # inspect water mass data
-phyM <- melt(phys, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "fluoro", "oxygen", "irradiance"))
+phyM <- melt(phyt, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "density","fluoro", "oxygen", "irradiance"))
 ggplot(data=phyM) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
 
 # look at profiles
 ggplot(phys) + geom_path(aes(x=temp, y=-depth), alpha=0.5) + facet_wrap(~haul)
 ggplot(phys) + geom_path(aes(x=salinity, y=-depth), alpha=0.5) + facet_wrap(~haul)
+ggplot(phys) + geom_path(aes(x=density, y=-depth), alpha=0.5) + facet_wrap(~haul)
 ggplot(phys) + geom_path(aes(x=fluoro, y=-depth), alpha=0.5) + facet_wrap(~haul)
 ggplot(phys) + geom_path(aes(x=oxygen, y=-depth), alpha=0.5) + facet_wrap(~haul)
 ggplot(phys) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~haul)
