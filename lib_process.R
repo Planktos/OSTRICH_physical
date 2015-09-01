@@ -278,6 +278,12 @@ phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
 #calculate seawater density
 phy$density <- swRho(salinity = phy$salinity, temperature = phy$temp, pressure = phy$pressure, eos = "unesco")
 
+summary(phy)
+
+# remove some erroneous values
+phy$oxygen <- ifelse(phy$oxygen < 0, NA, phy$oxygen)
+phy$irradiance <- ifelse(phy$irradiance < 0, NA, phy$irradiance)
+
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 transect.names <- as.data.frame(transect.names)
@@ -289,7 +295,7 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
   phyt <- phyt[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul")]
   
   #if GPS on ISIIS is NOT working, then use: 
-  #phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "haul")]
+  #phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density', "haul")]
   # Add latitude and longitude using ship's GPS data stream
 
 #round physical data to the nearest second so it can be merged with the gps data
@@ -310,12 +316,6 @@ summary(phyt.sec)
 
   #fix 4 hour time offset if present (start and end times should match phy data set)
   phys$dateTimeR <- phys$dateTimeR - 4 * 3600
-
-#clean up phyt
-phys <- phyt.sec
-# remove some erroneous values
-phys$oxygen <- ifelse(phys$oxygen < 0, NA, phys$oxygen)
-phys$irradiance <- ifelse(phys$irradiance < 0, NA, phys$irradiance)
 
 
 #check to make sure lat and lon from ship matched up correctly with physical data via timestamps
