@@ -27,7 +27,7 @@ options("digits.secs"=3)
 gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
 
 # reformat the lat and long in decimal degrees
-to.dec <- function(x) {
+to.dec.gps <- function(x) {
   # split in degree, minute, second
   pieces <- str_split_fixed(x, "° |'", 3)
   # extract orientation (S/N and E/W)
@@ -42,8 +42,8 @@ to.dec <- function(x) {
   return(dec)
 }
 
-# Read GPS data from ship
-# replaced read.gps with the adply call - kr
+# Read ship's GPS data
+# replaced read.gps with an adply call - kr
 gps <- adply(gps.files, 1, function(file) {
 
 # read.gps <- function(file) {
@@ -52,7 +52,7 @@ gps <- adply(gps.files, 1, function(file) {
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(file, header=F, skip=2, sep="\t",fileEncoding="UTF-8", skipNul = TRUE)
+  t <- read.table(gps.files[1], header=F, skip=2, sep="\t",fileEncoding="UTF-8", skipNul = TRUE)
   #name the fields
   colnames(t) <- c("date", "time", "gpsTime", "latdeg", "latminsec", "N-S", "londeg", "lonminsec","E-W", "altitude","height","dilution","satellites", "fix.quality","model", "checksum")
   # use the following instead of the above if reading in GPSVTG String .DAT GPS files
@@ -82,7 +82,7 @@ gps <- adply(gps.files, 1, function(file) {
   t$dateTime <- t$dateTime - 4*3600
  
  # keep only relevant columns & reorder them
-  t <- t[,names(t) %in% c("dateTime", "lat", "long")]
+  t <- t[,names(t) %in% c("dateTime", "lat.gps", "long.gps")]
   t <- t[c("dateTime", "lat.gps", "long.gps")]
 
   return(t)
@@ -107,7 +107,7 @@ gps.temp <- gps
 
 gps.temp$dateTimeR <- round_date(gps.temp$dateTime, "second")
 
-gps.sec <- aggregate(cbind(dateTime, lat, long)~dateTimeR, data = gps.temp, FUN = mean)
+gps.sec <- aggregate(cbind(dateTime, lat.gps, long.gps)~dateTimeR, data = gps.temp, FUN = mean)
 
 
 # # Read hydrological data from ISIIS
@@ -209,9 +209,9 @@ phy <- adply(phyFiles, 1, function(file) {
       #d$transect <- dd-14
   
   # reformat the lat and long in decimal degrees
+  
   # KR: Modifying because JL original wasn't quite working with structure of 2014 physical data files. This may not be robust for data
   # collected in regions with single digit lat and longitude coordinates
-  
   to.dec <- function(x) {
     # split in degree, minute, second
     #pieces <- str_split_fixed(x, "°|'",2) #Can't make R split at the degree symbol
@@ -297,12 +297,12 @@ phys$dateTimeR <- phys$dateTimeR - 4 * 3600
 
 
 #check to make sure lat and lon from ship matched up correctly with physical data via timestamps
-wm1 <- subset(phys, haul == 3, select=c(dateTimeR:haul))
-eund1 <- subset(phys, haul == 4, select=c(dateTimeR:haul))
-ws1 <- subset(phys, haul == 2, select=c(dateTimeR:haul))
-cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
-cu2 <- subset(phys, haul == 8, select=c(dateTimeR:haul))
-ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
+# wm1 <- subset(phys, haul == 3, select=c(dateTimeR:haul))
+# eund1 <- subset(phys, haul == 4, select=c(dateTimeR:haul))
+# ws1 <- subset(phys, haul == 2, select=c(dateTimeR:haul))
+# cs2 <- subset(phys, haul == 9, select=c(dateTimeR:haul))
+# cu2 <- subset(phys, haul == 8, select=c(dateTimeR:haul))
+# ed1 <- subset(phys, haul == 7, select=c(dateTimeR:haul))
 
 
 #Figure out why there are NAs in lat and long fields
