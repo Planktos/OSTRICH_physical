@@ -360,8 +360,10 @@ ggplot(phys) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~h
   transect.names2$haul <- as.numeric(transect.names2$haul)
   temp <- merge(x=phys, y=transect.names2, by = "haul", all.x=T)
 
+#save phys (averaged to each second) with transect metadata as R object
+save(temp, file = "ost14_physM.R")
 
-save phys (averaged to each second) frame as R object
+#save phys (averaged to each second) frame as R object
 save(phys, file = "ost14_phys.R")
 
 #save phy frame (non-averaged data) as R object
