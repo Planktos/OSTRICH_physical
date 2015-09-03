@@ -19,7 +19,7 @@ library("plyr")
 library("stringr")
 library("reshape2")
 library("pastecs")
-#library("ggplot2")
+library("ggplot2")
 library("oce")
 
 options("digits.secs"=3)
@@ -196,9 +196,11 @@ phy <- adply(phyFiles, 1, function(file) {
   dateNextDay <- str_c(mm,as.character(dd+1),yy, sep="/")
   
   # shift by one day when we cross midnight
-  d$hour <- as.numeric(str_sub(d$time,1,2))
-  d$date <- date
-  # d$date <- ifelse(d$hour >= 18 & d$hour <= 23, date, dateNextDay) #NEED to ask Jessica to explain this line
+  d1$hour <- as.numeric(str_sub(d1$time,1,2))
+  d1$date <- date
+  #d$date <- ifelse(d$hour >= 18 & d$hour <= 23, date, dateNextDay) #San Diego range -kr
+  #Straits of Florida range -kr
+  d$date <- ifelse(d$hour >= 20 & d$hour <= 23, date, dateNextDay)
   d$dateTime <- str_c(d$date, d$time, sep=" ")
   d$dateTime <- as.POSIXct(strptime(d$dateTime, format="%m/%d/%y %H:%M:%OS", tz="America/New_York"))
   # Set time zone of collection location
@@ -285,11 +287,15 @@ phy$oxygen <- ifelse(phy$oxygen < 0, NA, phy$oxygen)
 phy$irradiance <- ifelse(phy$irradiance < 0, NA, phy$irradiance)
 phy$density <- ifelse(phy$density < 1000, NA, phy$density)
 
+#round physical data to the nearest second so it can be merged with the gps data
+phyt.sec <- phy
+phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
+
 #Read in transect IDs from log sheets (exported from OSTRICH MS Access database table "ISIIS_Table")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 transect.names <- as.data.frame(transect.names)
 transect.names$haul <- as.numeric(transect.names$haul)
-phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
+phyt <- merge(x=phyt.sec, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
 
 # remove redundant file names
   # if GPS on ISIIS is working at all, then use: 
@@ -299,9 +305,6 @@ phyt <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafi
   phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul")]
   # Add latitude and longitude using ship's GPS data stream
 
-#round physical data to the nearest second so it can be merged with the gps data
-phyt.sec <- phyt
-phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
 # remember to add in lat and lon if ISIIS GPS fields are OK
 phyt.sec <- phyt.sec[,c("depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul", "dateTime")]
 phy.sec <- aggregate(cbind(depth, temp, salinity, pressure, fluoro, oxygen, irradiance, heading, horizontal.vel, vertical.vel, pitch, density, haul)~dateTime, data = phyt.sec, FUN = mean, na.action = na.pass)
@@ -361,7 +364,7 @@ ggplot(phys) + geom_path(aes(x=irradiance, y=-depth), alpha=0.5) + facet_wrap(~h
   temp <- merge(x=phys, y=transect.names2, by = "haul", all.x=T)
 
 #save phys (averaged to each second) with transect metadata as R object
-save(temp, file = "ost14_physM.R")
+save(physM, file = "ost14_physM.R")
 
 #save phys (averaged to each second) frame as R object
 save(phys, file = "ost14_phys.R")
