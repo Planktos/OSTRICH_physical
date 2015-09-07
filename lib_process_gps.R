@@ -19,8 +19,6 @@ library("plyr")
 library("stringr")
 library("reshape2")
 library("pastecs")
-library("ggplot2")
-library("oce")
 
 options("digits.secs"=3)
 
@@ -30,23 +28,25 @@ options("digits.secs"=3)
 #list GPS files from ship
 gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
 
-# reformat the lat and long in decimal degrees
-to.dec <- function(x) {
-  # split in degree, minute, second
-  pieces <- str_split_fixed(x, "° |'", 3)
-  # extract orientation (S/N and E/W)
-  orientation <- str_sub(pieces[,3], -1)
-  # remove orientation to only keep numbers
-  pieces[,3] <- str_replace(pieces[,3], "[NSEW]", "")
-  # convert to decimal degrees
-  dec <- as.numeric(pieces[,1]) + as.numeric(pieces[,2]) / 60 + as.numeric(pieces[,3]) / 3600
-  # orient the coordinate
-  ifelse(orientation %in% c("S", "W"), -dec, dec)
-  
-  return(dec)
-}
+# Read in functions
+# --------------------------------------------
+#1 reformat the lat and long in decimal degrees
+  to.dec <- function(x) {
+    # split in degree, minute, second
+    pieces <- str_split_fixed(x, "° |'", 3)
+    # extract orientation (S/N and E/W)
+    orientation <- str_sub(pieces[,3], -1)
+    # remove orientation to only keep numbers
+    pieces[,3] <- str_replace(pieces[,3], "[NSEW]", "")
+    # convert to decimal degrees
+    dec <- as.numeric(pieces[,1]) + as.numeric(pieces[,2]) / 60 + as.numeric(pieces[,3]) / 3600
+    # orient the coordinate
+    ifelse(orientation %in% c("S", "W"), -dec, dec)
+    
+    return(dec)
+  }
 
-# Read GPS data from ship
+#2 Function to read GPS data from ship
 read.gps <- function(file) {
   library(stringr)
   
@@ -87,6 +87,21 @@ read.gps <- function(file) {
   
 }
 
+
+# Run functions
+  gps <- adply(gps.files, 1, function(file){
+    t <- read.gps(file)
+    return(t)
+  }, .progress="text")
+  
+  gps <- gps[,-1]
+  
+  gps.temp <- gps
+
+#round dateTime to the nearest whole second
+gps.temp$dateTime <- round_date(gps.temp$dateTime, "second")
+
+gps.sec <- aggregate(cbind(lat, long)~dateTime, data = gps.temp, FUN = mean)
 
 #To process ship's GPS files with file nomenclature "[datetime] Bridge GPSGGA"
 # ----------------------------------------------------------------------------
