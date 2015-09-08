@@ -28,7 +28,7 @@ options("digits.secs"=3)
 
 # 2014 files
   dir.create("gps_2014_string", showWarnings=FALSE)
-  files2014 <- list.files("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/RVWS_PhysData/OST2014/MASTER_PhysData_2015/vids/GPS1", pattern = "GPSGGA String", full.names = T)
+  files2014 <- list.files("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/RVWS_PhysData/OST2014/vids/GPS1", pattern = "GPSGGA String", full.names = T)
   file.copy(from = files2014, to = "C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/gps_2014_string")
 
 # 2015 files
@@ -37,7 +37,10 @@ options("digits.secs"=3)
   file.copy(from = files2015, to = "C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/gps_2015_string")
 
 #list GPS files from ship
-gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
+  #2014
+  gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
+  #2015
+  gps.files <- list.files("gps_2015_string", recursive = TRUE, full=TRUE)
 
 # Read in functions
 # --------------------------------------------
@@ -64,9 +67,9 @@ gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(file, header=F, skip=2, sep=",")
+  t <- read.table(gps.files[2], header=F, skip=2, sep=",")
   # split the first column
-  tmp <- colsplit(t$V1, pattern="/t", names=c("date", "time", "model"))
+  tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
   # bind together
   t <- cbind(tmp, t[2:ncol(t)])
   t <- t[,names(t) %in% c("date", "time", "V3", "V4", "V5", "V6")]
