@@ -22,15 +22,26 @@ library("pastecs")
 
 options("digits.secs"=3)
 
-#To process ship's GPS files with file nomenclature "[datetime] Bridge GPSGGA String"
+#To process ship's GPS files with file nomenclature "[datetime] Bridge GPSGGA String." Use this file type!!!
 #--------------------------
+# Copy over raw gps files from ship's master data folder. (Note: Not coded to pull gps for real-time plottting)
+
+# 2014 files
+  dir.create("gps_2014_string", showWarnings=FALSE)
+  files2014 <- list.files("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/RVWS_PhysData/OST2014/MASTER_PhysData_2015/vids/GPS1", pattern = "GPSGGA String", full.names = T)
+  file.copy(from = files2014, to = "C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/gps_2014_string")
+
+# 2015 files
+  dir.create("gps_2015_string", showWarnings=FALSE)
+  files2015 <- list.files("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/RVWS_PhysData/OST2015/MASTER_PhysData_2015/vids/GPS1", pattern = "GPSGGA String", full.names = T)
+  file.copy(from = files2015, to = "C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/gps_2015_string")
 
 #list GPS files from ship
 gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
 
 # Read in functions
 # --------------------------------------------
-#1 reformat the lat and long in decimal degrees
+# 1. reformat the lat and long in decimal degrees
   to.dec <- function(x) {
     # split in degree, minute, second
     pieces <- str_split_fixed(x, "° |'", 3)
@@ -46,8 +57,8 @@ gps.files <- list.files("gps_2014_string", recursive = TRUE, full=TRUE)
     return(dec)
   }
 
-#2 Function to read GPS data from ship
-read.gps <- function(file) {
+# 2. Function to read GPS data from ship
+ read.gps <- function(file) {
   library(stringr)
   
   options(digits.secs=3)  # allow split seconds
@@ -55,7 +66,7 @@ read.gps <- function(file) {
   # read table
   t <- read.table(file, header=F, skip=2, sep=",")
   # split the first column
-  tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
+  tmp <- colsplit(t$V1, pattern="/t", names=c("date", "time", "model"))
   # bind together
   t <- cbind(tmp, t[2:ncol(t)])
   t <- t[,names(t) %in% c("date", "time", "V3", "V4", "V5", "V6")]
@@ -134,12 +145,12 @@ gps <- adply(gps.files, 1, function(file) {
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(file, header=F, skip=2, sep="\t",fileEncoding="UTF-8", skipNul = TRUE)
+  t <- read.table(file, header=F, skip=2, sep="/t",fileEncoding="UTF-8", skipNul = TRUE)
   #name the fields
   colnames(t) <- c("date", "time", "gpsTime", "latdeg", "latminsec", "N-S", "londeg", "lonminsec","E-W", "altitude","height","dilution","satellites", "fix.quality","model", "checksum")
   # use the following instead of the above if reading in GPSVTG String .DAT GPS files
   # split the first column
-  # tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
+  # tmp <- colsplit(t$V1, pattern="/t", names=c("date", "time", "model"))
   # bind together
   #   t <- cbind(tmp, t[2:ncol(t)])
   #   t <- t[,names(t) %in% c("date", "time", "V3", "V4", "V5", "V6")]
