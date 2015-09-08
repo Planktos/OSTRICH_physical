@@ -67,7 +67,7 @@ options("digits.secs"=3)
   options(digits.secs=3)  # allow split seconds
   
   # read table
-  t <- read.table(gps.files[2], header=F, skip=2, sep=",")
+  t <- read.table(file, header=F, skip=2, sep=",")
   # split the first column
   tmp <- colsplit(t$V1, pattern="\t", names=c("date", "time", "model"))
   # bind together
