@@ -28,7 +28,7 @@ options("digits.secs"=3)
 #--------------------------
 
 #list GPS files from ship
-gps.files <- list.files("gps_2014", recursive = TRUE, full=TRUE)
+gps.files <- list.files("gps_2015_string", recursive = TRUE, full=TRUE)
 
 # function reformat the lat and long in decimal degrees
 to.dec.gps <- function(y) {
@@ -168,7 +168,7 @@ message("Read and process physical data")
 # 4) corrects the time zone and adds in transect number, and converts lat/long into decimal degrees
 
 # list all the physical data files in a given directory
-phyFiles <- list.files("raw_physical_data_2014", full=TRUE)
+phyFiles <- list.files("raw_physical_data_2015", full=TRUE)
 
 # read them all
 phy <- adply(phyFiles, 1, function(file) {
