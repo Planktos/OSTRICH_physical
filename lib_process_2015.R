@@ -174,7 +174,7 @@ phyFiles <- list.files("raw_physical_data_2015", full=TRUE)
 phy <- adply(phyFiles, 1, function(file) {
   
   # read the data
-  d <- read.table(file, sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
+  d <- read.table(phyFiles[1], sep="\t", skip=10, header=TRUE, fileEncoding="ISO-8859-1", stringsAsFactors=FALSE, quote="\"", check.names=FALSE, encoding="UTF-8", na.strings="9999.99")
   
   # clean names
   head <- names(d)
@@ -187,7 +187,7 @@ phy <- adply(phyFiles, 1, function(file) {
   names(d) <- head
   
   # create a proper date + time format
-  date <- scan(file, what="character", skip=1, nlines=1, quiet=TRUE)
+  date <- scan(phyFiles[1], what="character", skip=1, nlines=1, quiet=TRUE)
   date <- date[2]
   mm <- str_sub(date,1,2)
   dd <- str_sub(date,4,5)
@@ -218,7 +218,7 @@ phy <- adply(phyFiles, 1, function(file) {
   
   # code in a transect number
   # use the file name as a dummy variable for transect number. Will assign proper transect number later in the pipeline.
-  d$transect <- basename(file)
+  d$transect <- basename(phyFile[1])
   # San Diego transect assignment
   # this is not robust for all physical data but is necessary here
   #d$transect <- dd-14
@@ -227,14 +227,14 @@ phy <- adply(phyFiles, 1, function(file) {
   
   # KR: Modifying because JL original wasn't quite working with structure of 2014 physical data files. This may not be robust for data
   # collected in regions with single digit lat and longitude coordinates
-  to.dec <- function(x) {
+  to.dec.lat <- function(x) {
     # split in degree, minute, second
     #pieces <- str_split_fixed(x, "°|'",2) #Can't make R split at the degree symbol
     deg <- substr(x, 1, 2)
     min <- substr(x, 5, 6)
-    sec <- substr(x, 8, 12)
+    sec <- substr(x, 8, 11)
     # extract orientation (S/N and E/W)
-    orientation <- substr(x, 13,13) #Changed from pieces[,3] to sec
+    orientation <- substr(x, 12,12) #Changed from pieces[,3] to sec
     # remove orientation to only keep numbers
     #pieces[,2] <- str_replace(pieces[,3], pattern = "[NSEW]", replacement = "")
     # convert to decimal degrees
@@ -245,7 +245,7 @@ phy <- adply(phyFiles, 1, function(file) {
     return(dec)
   }
   
-  d$lat <- to.dec(d$lat)
+  d$lat <- to.dec.lat(d$lat)
   d$long <- to.dec(d$long)
   # we are in the western hemisphere so longitude should be negative
   d$long <- -d$long
@@ -286,12 +286,15 @@ phy$depth <- approx(phy$dateTime, phy$depth, phy$dateTime, method="linear")$y
 #calculate seawater density
 phy$density <- swRho(salinity = phy$salinity, temperature = phy$temp, pressure = phy$pressure, eos = "unesco")
 
-summary(phy)
-
 # remove some erroneous values
 phy$oxygen <- ifelse(phy$oxygen < 0, NA, phy$oxygen)
-phy$irradiance <- ifelse(phy$irradiance < 0, NA, phy$irradiance)
+phy$temp <- ifelse(phy$temp <= 0, NA, phy$temp)
+phy$salinity <- ifelse(phy$salinity <= 0, NA, phy$salinity)
+phy$irradiance <- ifelse(phy$irradiance <= 0, NA, phy$irradiance)
+phy$pressure <- ifelse(phy$pressure < 0, NA, phy$presssure)
 phy$density <- ifelse(phy$density < 1000, NA, phy$density)
+
+summary(phy)
 
 #round physical data to the nearest second so it can be merged with the gps data
 phyt.sec <- phy
@@ -301,7 +304,7 @@ phyt.sec$dateTime <- round_date(phyt.sec$dateTime, "second")
 transect.names <- read.csv(file = "transect file names.csv", sep=",", header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, na.strings="9999.99")
 transect.names <- as.data.frame(transect.names)
 transect.names$haul <- as.numeric(transect.names$haul)
-phyt <- merge(x=phyt.sec, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
+phy_t <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldatafilename", all.x=T)
 
 # remove redundant file names
 # if GPS on ISIIS is working at all, then use: 
