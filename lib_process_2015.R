@@ -344,7 +344,7 @@ phy_t <- merge(x=phy, y=transect.names, by.x = "transect", by.y = "physicaldataf
 
 # remove redundant file names
 # if GPS on ISIIS is working at all, then use: 
-phy_t <- phy_t[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul")]
+phy_t <- phy_t[,c("dateTime", "depth", "lat", "long", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "vel_cms", "vol.rate", "dist.image","vol.image", "m3.sec")]
 
   # 2. if GPS on ISIIS is NOT working, then use: 
   # phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul")]
