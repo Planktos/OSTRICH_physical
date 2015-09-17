@@ -24,6 +24,12 @@ library("oce")
 
 options("digits.secs"=3)
 
+# Functions
+# -----------
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
 #To process ship's GPS files
 #--------------------------
 
@@ -227,16 +233,15 @@ phy <- adply(phyFiles, 1, function(file) {
   
   # KR: Modifying because JL original wasn't quite working with structure of 2014 physical data files. This may not be robust for data
   # collected in regions with single digit lat and longitude coordinates
-  to.dec.lat <- function(x) {
+  to.dec <- function(x) {
     # split in degree, minute, second
-    #pieces <- str_split_fixed(x, "°|'",2) #Can't make R split at the degree symbol
-    deg <- substr(x, 1, 2)
-    min <- substr(x, 5, 6)
-    sec <- substr(x, 8, 11)
+    pieces <- str_split_fixed(x, "°|'| ",3) #Can't make R split at the degree symbol
+    deg <- substr(pieces[,1], 1, 2)
+    min <- pieces[,2]
     # extract orientation (S/N and E/W)
-    orientation <- substr(x, 12,12) #Changed from pieces[,3] to sec
+    orientation <- substr(pieces[,3], -1) #Changed from pieces[,3] to sec
     # remove orientation to only keep numbers
-    #pieces[,2] <- str_replace(pieces[,3], pattern = "[NSEW]", replacement = "")
+    sec <- str_replace(pieces[,3], pattern = "[NSEW]", replacement = "")
     # convert to decimal degrees
     dec <- as.numeric(deg) + as.numeric(min) / 60 + as.numeric(sec) / 3600 #replaced 'pieces' with 'deg', 'min', and 'sec'
     # orient the coordinate
