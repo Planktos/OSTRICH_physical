@@ -5,6 +5,8 @@ library("reshape2")
 library("pastecs")
 library("ggplot2")
 library("oce")
+library("ggbiplot")
+
 
 #load data
 load("ost15_phy_t.R")
@@ -13,7 +15,9 @@ load("ost15_phy_t.R")
 phy <- melt(phy_t, id.vars=c("dateTime"), measure.vars=c("depth", "temp", "salinity", "density","fluoro", "oxygen", "irradiance"))
 ggplot(data=phy) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="free")
 
+# ---------------
 # check normality
+# ---------------
 ##temp
   qqnorm(phy_t$temp)
   ks.test(x = phy_t$temp,y = pnorm, alternative = "two.sided")
@@ -62,4 +66,24 @@ ggplot(data=phy) + geom_histogram(aes(x=value)) + facet_wrap(~variable, scales="
   qqnorm(phy_t$trans.irradiance)
   ks.test(x = phy_t$trans.irradiance,y = pnorm, alternative = "two.sided")
 
-phyt <- phyt[,c("dateTime", "depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "heading", "horizontal.vel", "vertical.vel", "pitch", "density", "haul")]
+# ---------------
+# principle component analysis
+# ---------------
+# subset quantitative physical data fields
+p <- phy_t[,c("depth", "temp", "salinity", "pressure", "fluoro", "oxygen", "irradiance", "density")]
+na.omit(p)
+  is.finite.data.frame <- function(obj){
+    sapply(obj,FUN = function(x) all(is.finite(x)))
+  }
+  is.finite.data.frame(p)
+  ptemp_inf <- is.infinite(p$temp)
+  psal_inf <- is.infinite(p$salinity)
+  ppress_inf <- is.infinite(p$pressure)
+  pfluoro_inf <- is.infinite(p$fluoro)
+  poxy_inf <- is.infinite(p$oxygen)
+  pirr_inf <- is.infinite(p$irradiance)
+  pden_inf <- is.infinite(p$density)
+  
+p_region <- phy_t$region
+p.pca <- prcomp(p, na.action=na.omit, center = TRUE, scale = TRUE)
+  
