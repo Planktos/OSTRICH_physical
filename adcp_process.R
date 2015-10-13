@@ -1,8 +1,9 @@
 #process ADCP data
 
 library(stringr)
-library(dplyr)
 library(plyr)
+library(dplyr)
+
 
 options("digits.secs" = 3)
 
@@ -32,8 +33,9 @@ adcp <- function(u,v,z,yxt){
 #run function
 adcp(u,v,z,xyt)
 
-files <- list.files("C:/Users/Kelly/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/temp")
-setwd("C:/Users/Kelly/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/temp")
+setwd("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/temp")
+files <- list.files("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical/temp")
+
 
 adcp_data <- adply(files, 1, function(file) {
   t <- read.table(file, header=T, sep=",")
@@ -42,7 +44,7 @@ adcp_data <- adply(files, 1, function(file) {
     return(t)
 }, .progress="text")
 
-setwd("C:/Users/Kelly/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical")
+setwd("C:/Users/kelly.robinson/Dropbox/Cowen_Sponaugle_share/OSTRICH/ISIIS data/OSTRICH_physical")
 
 # remove adply crap
 adcp_data <- adcp_data[,-1]
@@ -50,6 +52,7 @@ adcp_data <- adcp_data[,-1]
 d<-adcp_data
 
   library(lubridate)
+
   #create proper date
   d$date<-strptime(x = d$doy, format ="%j", tz="GMT")
   d$date<-as.POSIXct(d$date)
@@ -84,8 +87,16 @@ d<-adcp_data
   #calculate current speed
   d$current_speed <- sqrt(d$u^2+d$v^2)
   
+  #calculate rotation
+  d$rotation <- (180/3.14)*atan2(d$u,d$v)
+  
+  #change sign of depth bin for ArcGIS
+  d$z_bin <- d$z_bin*-1
+  
   #sort data by day of year (doy)
   sort(d$doy)
+  
+  d <- na.omit(d)
   
   write.table(d, file="ost15_WS_currents.txt", sep="\t", row.names = F, col.names = T)
   
