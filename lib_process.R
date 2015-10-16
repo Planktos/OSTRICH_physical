@@ -291,8 +291,37 @@ summary(phy)
 
 # remove some erroneous values
 phy$oxygen <- ifelse(phy$oxygen < 0, NA, phy$oxygen)
-phy$irradiance <- ifelse(phy$irradiance < 0, NA, phy$irradiance)
+phy$temp <- ifelse(phy$temp <= 0, NA, phy$temp)
+phy$salinity <- ifelse(phy$salinity <= 0, NA, phy$salinity)
+phy$irradiance <- ifelse(phy$irradiance <= 0, NA, phy$irradiance)
+phy$pressure <- ifelse(phy$pressure < 0, NA, phy$presssure)
 phy$density <- ifelse(phy$density < 1000, NA, phy$density)
+
+#calculate vol.imaged
+#convert horizontal velocity in (mm/s) to (cms/s)
+phy$t0 <- phy$horizontal.vel/10
+phy$vel_cms <- ifelse(phy$t0 < 0, NA, phy$t0)
+phy$t0 <- NULL
+
+#set constants
+image.width <- 2048
+scan.rate <- 35000
+dof <- 50
+fov <- 13.5
+
+#calculate px/image
+px.image <- scan.rate/image.width
+#calculate distanced imaged per second
+phy$dist.image <- phy$vel_cms/px.image
+#calculate volume imaged in cm3.
+phy$vol.image <- dof*fov*phy$dist.image
+#calculate volume rate(L/s)
+phy$vol.rate <- (px.image*phy$vol.image)/1000
+#1m3/sec
+phy$m3.sec <- phy$vol.rate/1000
+
+#sec to image 1-m3
+print(1/mean(phy$m3.sec, na.rm=T)) #this value should be around 4.6 sec
 
 #round physical data to the nearest second so it can be merged with the gps data
 phyt.sec <- phy
@@ -387,6 +416,8 @@ save(phys, file = "ost14_phys.R")
 save(phy, file = "ost14_phy.R")
 
 #write.table(phys, file = "ost14-phys.txt", sep = "\t", row.names = F, col.names = T)
+
+
 
 # Functions
 #--------------------------------------------
